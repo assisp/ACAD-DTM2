@@ -14,8 +14,9 @@ Create Vertical Views of 3D Polylines
 
 Installation:
 
-Build DLL (or use the pre-built binaries under https://github.com/assisp/ACAD-DTM2/releases):
-  with msys2 (you can replace g++ with clang++):
+Build DLL with msys2 (or use the pre-built binaries under https://github.com/assisp/ACAD-DTM2/releases):
+
+ (you can replace g++ with clang++)
   
     (make sure to have libboost installed: pacman -S mingw-w64-x86_64-boost)
     
