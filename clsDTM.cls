@@ -1090,7 +1090,6 @@ Public Function createTIN(ByVal maxEdge As Double) As Long
     
     mPath = getPath(sPath)
     
-    'ChDir "C:\Users\paulo.assis\Documents\Devel\VBA\DTM"
     ChDir mPath
     
     Dim tot As Long
