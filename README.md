@@ -16,11 +16,15 @@ Installation:
 
 Build DLL:
   with msys2 (you can replace g++ with clang++):
+  
     (make sure to have libboost installed: pacman -S mingw-w64-x86_64-boost)
+    
     g++ -c -o DTM2.o DTM2.cpp
+    
     g++ -shared -v -o DTM2.dll DTM2.o
 
 Add files to Acad or Bricscad VBA project: (DTM.bas, clsDTM.cls, UserForm1.frm and UserForm2.frm)
+
 Add DTM2.dll and build dependencies (libgcc_s_seh-1.dll, libstdc++-6.dll and libwinpthread-1.dll 
 to the same dir of the VBA project file
 
