@@ -27,7 +27,7 @@ Build DLL with msys2 (or use the pre-built binaries under https://github.com/ass
 
 Add files to Acad or Bricscad VBA project: (DTM.bas, clsDTM.cls, UserForm1.frm and UserForm2.frm)
 
-Add DTM2.dll and dependencies (libgcc_s_seh-1.dll, libstdc++-6.dll and libwinpthread-1.dll 
+Add DTM2.dll and dependencies (libgcc_s_seh-1.dll, libstdc++-6.dll and libwinpthread-1.dll) 
 to the same dir of the VBA project file
 
 run one of the 4 available macros:
