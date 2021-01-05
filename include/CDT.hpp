@@ -404,8 +404,8 @@ template <typename T>
 void Triangulation<T>::insertVertex(const V2d<T>& pos)
 {
     const VertInd iVert(vertices.size());
-    std::array<TriInd, 2> trisAt = walkingSearchTrianglesAt(pos);
-    std::stack<TriInd> triStack =
+	std::array<TriInd, 2> trisAt = walkingSearchTrianglesAt(pos);
+	std::stack<TriInd> triStack =
         trisAt[1] == noNeighbor ? insertPointInTriangle(pos, trisAt[0])
                                 : insertPointOnEdge(pos, trisAt[0], trisAt[1]);
     while(!triStack.empty())

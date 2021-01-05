@@ -109,10 +109,12 @@ unsigned long DTM::GetPointIndex(double x, double y){
 	}
 	
 	char buf[200];
-	wsprintf(buf, "point (%f,%f) is not in point list", x, y);
+	snprintf(buf, 200, "point (%f,%f) is not in point list", x, y);
 	const int result = MessageBox(0, buf, "DTM Lib", MB_YESNOCANCEL);
 	if (result == IDNO) 
 	 	exit(0);
+	else if (result == IDCANCEL) 
+	 	abort();
 	return m_pts.size(); //point p is not in list
 }
 
@@ -165,9 +167,20 @@ int DTM::orientation(unsigned long v1, unsigned long v2, unsigned long v3) {
 }
 
 unsigned long DTM::Triangulate() {
-	cdt.insertVertices(m_pts);
-	cdt.insertEdges(m_edges);
-	cdt.eraseSuperTriangle();
+	try
+	{
+		cdt.insertVertices(m_pts);
+		cdt.insertEdges(m_edges);
+		cdt.eraseSuperTriangle();
+	}
+	catch (const std::exception& e)
+	{
+		char buf[200];
+		snprintf(buf, 200, e.what());
+		const int result = MessageBox(0, buf, "DTM Lib", MB_YESNO);
+		if (result == IDNO) 
+			return -1;	
+	}
 
 	return cdt.triangles.size();
 }

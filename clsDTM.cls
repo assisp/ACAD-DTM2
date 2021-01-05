@@ -8,48 +8,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 
-Option Explicit
 
-Rem ------------------------------------------------------------------------------
-Rem --- External DLL declarations
-Rem ------------------------------------------------------------------------------
-Private Declare PtrSafe Function DTMLib_init _
-    Lib "DTM2.dll" () As LongPtr
-    
-Private Declare PtrSafe Sub DTMLib_close _
-    Lib "DTM2.dll" (ByVal handle As Any)
-
-Private Declare PtrSafe Function DTMLib_pointListSize _
-    Lib "DTM2.dll" (ByVal handle As Any) As Long
-
-Private Declare PtrSafe Function DTMLib_addPoint _
-    Lib "DTM2.dll" ( _
-        ByVal handle As Any, ByVal x As Double, ByVal y As Double, ByVal z As Double _
-    ) As Long
-Private Declare PtrSafe Function DTMLib_appendPoint _
-    Lib "DTM2.dll" ( _
-        ByVal handle As Any, ByVal x As Double, ByVal y As Double, ByVal z As Double _
-    ) As Long
-
-Private Declare PtrSafe Sub DTMLib_getPoint _
-    Lib "DTM2.dll" ( _
-        ByVal handle As Any, ByVal index As Long, ByRef x As Double, ByRef y As Double, ByRef z As Double _
-    )
-Private Declare PtrSafe Function DTMLib_addConstraint _
-     Lib "DTM2.dll" ( _
-        ByVal handle As Any, ByVal x1 As Double, ByVal y1 As Double, ByVal x2 As Double, ByVal y2 As Double _
-     ) As Long
-     
-Private Declare PtrSafe Function DTMLib_triangulate _
-    Lib "DTM2.dll" ( _
-        ByVal handle As Any _
-    ) As Long
-
-Private Declare PtrSafe Function DTMLib_getTriangle _
-    Lib "DTM2.dll" ( _
-        ByVal handle As Any, ByVal index As Long, ByRef v1 As Double, ByRef v2 As Double, ByRef v3 As Double _
-    ) As Boolean
-    
 Rem -----------------------------------------------------------------------------------------------------------------------
 Rem --- Internal Variables                                                                           ---
 Rem -----------------------------------------------------------------------------------------------------------------------
@@ -206,7 +165,7 @@ End Function
 Rem ---
 Rem --- get points and break lines from selected objects
 Rem ---
-Public Function getObjects(ByVal handle As LongPtr) As Long
+Public Function getObjects(ByRef dll_wrapper As clsDllWrapper) As Long
     Dim acSelSet As AcadSelectionSet
     Dim grpCode(5) As Integer
     Dim dataVal(5) As Variant
@@ -273,12 +232,12 @@ Public Function getObjects(ByVal handle As LongPtr) As Long
         If TypeOf acObj Is AcadPoint Then
             Set acPoint = acObj
             
-            DTMLib_addPoint handle, acPoint.Coordinates(0), acPoint.Coordinates(1), acPoint.Coordinates(2)
+            dll_wrapper.LibAddPoint acPoint.Coordinates(0), acPoint.Coordinates(1), acPoint.Coordinates(2)
             
-        ElseIf TypeOf acObj Is AcadBlock Then
+        ElseIf TypeOf acObj Is AcadBlockReference Then
             Set acBlock = acObj
             
-            DTMLib_addPoint handle, acBlock.InsertionPoint(0), acBlock.InsertionPoint(0), acBlock.InsertionPoint(0)
+            dll_wrapper.LibAddPoint acBlock.InsertionPoint(0), acBlock.InsertionPoint(1), acBlock.InsertionPoint(2)
             
         ElseIf TypeOf acObj Is Acad3DPolyline Then
             
@@ -287,7 +246,7 @@ Public Function getObjects(ByVal handle As LongPtr) As Long
             ConsList.Add ac3DPoly.Coordinates
                 
             For i = LBound(ac3DPoly.Coordinates) To UBound(ac3DPoly.Coordinates) Step 3
-                DTMLib_addPoint handle, ac3DPoly.Coordinates(i), ac3DPoly.Coordinates(i + 1), ac3DPoly.Coordinates(i + 2)
+                dll_wrapper.LibAddPoint ac3DPoly.Coordinates(i), ac3DPoly.Coordinates(i + 1), ac3DPoly.Coordinates(i + 2)
             Next
         ElseIf TypeOf acObj Is AcadPolyline Then
                          
@@ -296,7 +255,7 @@ Public Function getObjects(ByVal handle As LongPtr) As Long
             ConsList.Add acPoly.Coordinates
             
             For i = LBound(acPoly.Coordinates) To UBound(acPoly.Coordinates) Step 3
-                DTMLib_addPoint handle, acPoly.Coordinates(i), acPoly.Coordinates(i + 1), acPoly.Coordinates(i + 2)
+                dll_wrapper.LibAddPoint acPoly.Coordinates(i), acPoly.Coordinates(i + 1), acPoly.Coordinates(i + 2)
             Next
         ElseIf TypeOf acObj Is AcadLine Then
              
@@ -304,22 +263,21 @@ Public Function getObjects(ByVal handle As LongPtr) As Long
                         
             ConsList.Add Array(acLine.StartPoint(0), acLine.StartPoint(1), acLine.StartPoint(2), acLine.EndPoint(0), acLine.EndPoint(1), acLine.EndPoint(2))
                         
-            DTMLib_addPoint handle, acLine.StartPoint(0), acLine.StartPoint(1), acLine.StartPoint(2)
-                        
-            DTMLib_addPoint handle, acLine.EndPoint(0), acLine.EndPoint(1), acLine.EndPoint(2)
+            dll_wrapper.LibAddPoint acLine.StartPoint(0), acLine.StartPoint(1), acLine.StartPoint(2)
+            dll_wrapper.LibAddPoint acLine.EndPoint(0), acLine.EndPoint(1), acLine.EndPoint(2)
         End If
     Next
 
    
     For Each cons In ConsList
         For i = 3 To UBound(cons) Step 3
-            DTMLib_addConstraint handle, cons(i - 3), cons(i - 2), cons(i), cons(i + 1)
+            dll_wrapper.LibAddConstraint cons(i - 3), cons(i - 2), cons(i), cons(i + 1)
         Next i
     Next
     
     acSelSet.Delete 'delete the selection set
     
-    tot = DTMLib_pointListSize(handle)
+    tot = dll_wrapper.LibPointListSize
     
     getObjects = tot
     
@@ -586,7 +544,7 @@ End Function
 Rem ---
 Rem --- Draw triangles from DLL lib to 3DFACES
 Rem ---
-Private Sub draw3dFaces(ByVal handle As LongPtr, ByVal tot As Long, Optional ByVal maxEdge As Double = -1)
+Private Sub draw3dFaces(ByRef dll_wrapper As clsDllWrapper, ByVal tot As Long, Optional ByVal maxEdge As Double = -1)
     Dim n As Long
     Dim layerObj As AcadLayer
     Dim lcolor As New AcadAcCmColor
@@ -606,7 +564,7 @@ Private Sub draw3dFaces(ByVal handle As LongPtr, ByVal tot As Long, Optional ByV
     ThisDrawing.ActiveLayer = layerObj
     
     For n = 0 To tot
-       DTMLib_getTriangle handle, n, p1(0), p2(0), p3(0)
+       dll_wrapper.LibGetTriangle n, p1(0), p2(0), p3(0)
         
         If maxEdge > 0 Then
             If distance(p1, p2) < maxEdge Then
@@ -1082,7 +1040,6 @@ Rem ---
 Rem --- generates 3dface triangles surfaces from Delauney constrained triangulation of selected points and 3dPolylines
 Rem ---
 Public Function createTIN(ByVal maxEdge As Double) As Long
-    
     Dim sPath As String
     Dim mPath As String
     
@@ -1090,16 +1047,17 @@ Public Function createTIN(ByVal maxEdge As Double) As Long
     
     mPath = getPath(sPath)
     
+    'ChDir "C:\Users\paulo.assis\Documents\Devel\VBA\DTM"
     ChDir mPath
     
     Dim tot As Long
     Dim nPoints As Long
     
-    Dim handle As LongPtr
-    handle = DTMLib_init
-    
+    Dim dll_wrapper As clsDllWrapper
+    Set dll_wrapper = New clsDllWrapper
+        
     'get points and constraints
-    nPoints = getObjects(handle)
+    nPoints = getObjects(dll_wrapper)
     
     If nPoints = 0 Then
         createTIN = 0
@@ -1107,16 +1065,17 @@ Public Function createTIN(ByVal maxEdge As Double) As Long
     End If
     
     ' get delauney triangulation
-    tot = DTMLib_triangulate(handle)
+    tot = dll_wrapper.LibTriangulate
     
-    'draw triangles
-    draw3dFaces handle, tot, maxEdge
+    If tot > 0 Then
+       'draw triangles
+        draw3dFaces dll_wrapper, tot, maxEdge
+        MsgBox "generated " & tot & " triangles from " & nPoints & " Points"
+        createTIN = tot
+    Else
+        MsgBox "Error: triangulate returned " & tot & " triangles from " & nPoints & " Points"
+    End If
     
-    MsgBox "generated " & tot & " triangles from " & nPoints & " Points"
-    
-    DTMLib_close handle
-    
-    createTIN = tot
 
 End Function
 
